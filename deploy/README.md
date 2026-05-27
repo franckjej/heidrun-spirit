@@ -1,21 +1,47 @@
 # Deploying heidrun-spirit
 
-## Why there's no Dockerfile
+heidrun-spirit is an outbound Hotline client built on the cross-platform
+`NIOHotlineClient` (SwiftNIO), so it runs on **Linux (Docker)** and **macOS
+(launchd)**. Pick whichever fits your host.
 
-The bot talks to Hotline servers through `HeidrunCore`'s `HotlineNetworkClient`,
-which is built on Apple's **Network framework** (`NWConnection`) and is
-therefore **Darwin-only** — its whole source is behind `#if canImport(Network)`.
-Docker containers are Linux, where that client **compiles out entirely**; there
-is no SwiftNIO/Linux Hotline *client* transport in `HeidrunCore` (only the
-server side runs on Linux, which is why `heidrun-server` ships a Dockerfile and
-this doesn't).
+## Docker (Linux)
 
-So heidrun-spirit deploys as a **native macOS process**, run under `launchd`.
+The repo ships a multi-stage `Dockerfile` and a `docker-compose.yml`. The build
+fetches the private `heidrun-protocol` SPM package, authenticated with a GitHub
+token passed as a BuildKit secret — `gh auth token` emits one once you've run
+`gh auth login`.
 
-**Want it on a Linux host (e.g. next to `heidrun-server`)?** That needs the
-Hotline client transport ported to SwiftNIO first — a real piece of work in
-`heidrun-protocol`, not a packaging change. Tracked as a future option; until
-then, run the bot on a Mac.
+```bash
+cd heidrun-spirit
+
+# Set the server the bot connects to in docker-compose.yml
+# (HEIDRUN_SPIRIT_HOST), then:
+DOCKER_BUILDKIT=1 GH_TOKEN="$(gh auth token)" \
+  docker compose up -d --build
+
+# Logs (connect/login/reconnect lines):
+docker logs -f heidrun-spirit
+
+# Stop:
+docker compose down
+```
+
+The MegaHAL **brain persists** in the `spirit-brain` named volume and is seeded
+from the bundled training data on first run. To reset the bot's "personality":
+
+```bash
+docker compose down
+docker volume rm heidrun-spirit_spirit-brain
+```
+
+**Co-locating with heidrun-server** on the same host: uncomment the `networks:`
+stanzas in `docker-compose.yml` and set `HEIDRUN_SPIRIT_HOST: heidrun-server`
+(port `5500`) so the bot reaches the server over the internal docker network —
+no public exposure needed. See the comments in `docker-compose.yml`.
+
+The container connects out and has no published ports. Configuration is entirely
+environment variables (see the table at the bottom); the compose file lists every
+one with its default.
 
 ## macOS deployment (launchd)
 
