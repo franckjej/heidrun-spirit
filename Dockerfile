@@ -57,11 +57,12 @@ COPY Tests ./Tests
 # After build, stage the binary AND its resource bundle into /out.
 # Bundle.module locates the MegaHAL seed brain in SpiritKit's resource
 # bundle, which SwiftPM places next to the executable — so it must travel
-# with the binary. The bundle's filename is NOT hardcoded: SwiftPM
-# sanitizes the package name differently across platforms (the hyphen in
-# "heidrun-spirit" survives on macOS but not always on Linux), so we glob
-# *.bundle, which preserves whatever name the accessor expects. Staging in
-# /out keeps the runtime COPY a single, name-agnostic directory copy.
+# with the binary. The bundle's name is NOT hardcoded: its form is
+# platform-specific (macOS: <pkg>_<target>.bundle; Linux:
+# <pkg>_<target>.resources), so we `find` both. The non-Darwin
+# Bundle.module accessor looks for the `.resources` directory next to the
+# executable, i.e. /usr/local/bin — which is where /out's contents land.
+# (The transitive GRDB_GRDB.resources is copied too; harmless.)
 RUN --mount=type=secret,id=gh_token,required=true \
     --mount=type=cache,target=/root/.cache/org.swift.swiftpm \
     --mount=type=cache,target=/src/.build \
@@ -73,15 +74,11 @@ RUN --mount=type=secret,id=gh_token,required=true \
  && swift build \
       --configuration release \
       --product heidrun-spirit \
- && echo "=== .build/release contents ===" \
- && ls -la .build/release/ \
  && mkdir -p /out \
  && install -m 0755 \
       .build/release/heidrun-spirit \
       /out/heidrun-spirit \
- && find .build/release/ -maxdepth 1 \( -name '*.bundle' -o -name '*.resources' \) -print -exec cp -R {} /out/ \; \
- && echo "=== /out contents ===" \
- && ls -la /out/ \
+ && find .build/release/ -maxdepth 1 \( -name '*.bundle' -o -name '*.resources' \) -exec cp -R {} /out/ \; \
  && git config --global --remove-section "url.${AUTHED_BASE}"
 
 # ──────────────────────────────────────────────────────────────────────────────
