@@ -1,0 +1,121 @@
+# Convenience compose file for heidrun-spirit (the MegaHAL chatbot).
+#
+# Run from this repo's root:
+#   DOCKER_BUILDKIT=1 GH_TOKEN="$(gh auth token)" \
+#     docker compose up -d --build
+#
+# Stop:
+#   docker compose down
+#
+# Logs:
+#   docker logs -f heidrun-spirit
+#
+# The build pulls the private `heidrun-protocol` SPM package over HTTPS,
+# authenticated with a GitHub token. `gh auth token` emits one if you've
+# run `gh auth login`. The top-level `secrets:` block forwards $GH_TOKEN
+# into the build as a BuildKit secret (compose v2+); see `Dockerfile` for
+# how it's consumed without landing in any image layer.
+#
+# heidrun-spirit is an OUTBOUND client: it connects to a Hotline server,
+# so there are no published ports. Point it at a server two ways:
+#
+#   1. Standalone (default): set HEIDRUN_SPIRIT_HOST to any reachable
+#      hostname/IP below.
+#   2. Co-located with heidrun-server on the same host: uncomment the
+#      `networks:` stanzas (service-level + top-level) and set
+#      HEIDRUN_SPIRIT_HOST to the server's service name (heidrun-server)
+#      with HEIDRUN_SPIRIT_PORT 5500. The external network name assumes
+#      heidrun-server was brought up from a directory named
+#      `heidrun-server` (compose names its default network
+#      `heidrun-server_default`); adjust if yours differs.
+#
+# The MegaHAL brain persists in the `spirit-brain` named volume and is
+# seeded from the bundled training data on first run. To reset the bot's
+# "personality", stop it and remove the volume:
+#   docker compose down
+#   docker volume rm heidrun-spirit_spirit-brain
+
+services:
+  spirit:
+    image: heidrun-spirit:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      secrets:
+        - gh_token
+    container_name: heidrun-spirit
+    restart: unless-stopped
+    # No healthcheck: a client has no port to probe. The bot's internal
+    # reconnect-with-backoff loop plus `restart: unless-stopped` cover
+    # liveness.
+    volumes:
+      # The learned brain persists here across restarts (first run seeds
+      # it from the bundled training data).
+      - spirit-brain:/var/lib/heidrun-spirit
+    # --- Optional: co-locate with heidrun-server on the same host ---
+    # Uncomment this and the top-level `networks:` block, then set
+    # HEIDRUN_SPIRIT_HOST: heidrun-server below.
+    # networks:
+    #   - heidrun-net
+    environment:
+      # ---------------------------------------------------------------
+      # REQUIRED
+      # ---------------------------------------------------------------
+
+      # Hotline server hostname / IP the bot connects to. For a
+      # co-located heidrun-server, this is the service name
+      # "heidrun-server" (with the networks stanzas uncommented).
+      HEIDRUN_SPIRIT_HOST: "CHANGE_ME.server.example"
+
+      # ---------------------------------------------------------------
+      # COMMON (defaults shown — uncomment to override)
+      # ---------------------------------------------------------------
+
+      # TCP port. Defaults to 5500 (or 5503 when TLS is on).
+      # HEIDRUN_SPIRIT_PORT: "5500"
+
+      # Account login (empty = guest) and password.
+      # HEIDRUN_SPIRIT_LOGIN: ""
+      # HEIDRUN_SPIRIT_PASSWORD: ""
+
+      # Display name in the server's user list.
+      # HEIDRUN_SPIRIT_NICK: "Heidrun's Spirit"
+
+      # Numeric Hotline icon ID, and/or an emoji avatar (Heidrun servers).
+      # HEIDRUN_SPIRIT_ICON: "0"
+      # HEIDRUN_SPIRIT_EMOJI: "👻"
+
+      # "1"/"true" to use TLS (system-trust only; self-signed not
+      # supported for the unattended bot). Bumps the default port to 5503.
+      # HEIDRUN_SPIRIT_TLS: "false"
+
+      # ---------------------------------------------------------------
+      # BRAIN / BEHAVIOUR (Dockerfile defaults shown — usually fine)
+      # ---------------------------------------------------------------
+
+      # Writable brain directory. The Dockerfile defaults this to the
+      # named-volume path; only override if you remap the volume.
+      # HEIDRUN_SPIRIT_BRAIN_PATH: "/var/lib/heidrun-spirit/brain"
+
+      # Save the brain to disk every N replies.
+      # HEIDRUN_SPIRIT_AUTOSAVE: "25"
+
+      # swift-log threshold: debug / info / error.
+      # HEIDRUN_SPIRIT_LOG_LEVEL: "info"
+
+# --- Optional: co-location network (see the service `networks:` above) ---
+# networks:
+#   heidrun-net:
+#     external: true
+#     name: heidrun-server_default
+
+volumes:
+  spirit-brain:
+
+# Build-time secret. Compose reads $GH_TOKEN from the shell that invokes
+# `docker compose build/up` and forwards it to BuildKit as a secret file
+# at /run/secrets/gh_token, consumed only by the build RUN in the
+# Dockerfile. Not used at runtime.
+secrets:
+  gh_token:
+    environment: GH_TOKEN
