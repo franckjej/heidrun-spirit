@@ -29,21 +29,23 @@ struct SpiritBotTests {
         )
     }
 
+    // Use the REAL heidrun-server wire format: " <nick>: <body>\r".
+
     @Test("replies to a peer's line")
     func repliesToPeer() async {
         let engine = FakeEngine(canned: "BANANA")
         let sent = Sent()
         let bot = makeBot(engine: engine, sent: sent)
-        await bot.handleChatLine("Bob:  hello?")
+        await bot.handleChatLine(" Bob: hello?\r")
         #expect(await sent.all() == ["BANANA"])
     }
 
-    @Test("ignores its own echoed line")
+    @Test("ignores its own echoed line (the infinite-loop guard)")
     func ignoresSelf() async {
         let engine = FakeEngine(canned: "BANANA")
         let sent = Sent()
         let bot = makeBot(engine: engine, sent: sent)
-        await bot.handleChatLine("Spirit:  BANANA")
+        await bot.handleChatLine(" Spirit: Beef is the study of the foot.\r")
         #expect(await sent.all().isEmpty)
     }
 
@@ -52,8 +54,8 @@ struct SpiritBotTests {
         let engine = FakeEngine(canned: "x")
         let sent = Sent()
         let bot = makeBot(engine: engine, sent: sent, autosave: 2)
-        await bot.handleChatLine("Bob:  one")
-        await bot.handleChatLine("Bob:  two")   // 2nd reply -> save
+        await bot.handleChatLine(" Bob: one\r")
+        await bot.handleChatLine(" Bob: two\r")   // 2nd reply -> save
         #expect(await engine.saves() == 1)
     }
 }
