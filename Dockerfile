@@ -73,13 +73,15 @@ RUN --mount=type=secret,id=gh_token,required=true \
  && swift build \
       --configuration release \
       --product heidrun-spirit \
+ && echo "=== .build/release contents ===" \
+ && ls -la .build/release/ \
  && mkdir -p /out \
  && install -m 0755 \
       .build/release/heidrun-spirit \
       /out/heidrun-spirit \
- && cp -R \
-      .build/release/*.bundle \
-      /out/ \
+ && find .build/release/ -maxdepth 1 \( -name '*.bundle' -o -name '*.resources' \) -print -exec cp -R {} /out/ \; \
+ && echo "=== /out contents ===" \
+ && ls -la /out/ \
  && git config --global --remove-section "url.${AUTHED_BASE}"
 
 # ──────────────────────────────────────────────────────────────────────────────
