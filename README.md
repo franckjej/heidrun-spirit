@@ -12,3 +12,11 @@ Licensed **GPLv2** (the bundled MegaHAL C is GPLv2). See `LICENSE`.
 swift build -c release
 HEIDRUN_SPIRIT_HOST=hotline.example.com .build/release/heidrun-spirit
 ```
+
+## Deploy
+
+Runs as a macOS `launchd` daemon — see [`deploy/`](deploy/README.md).
+
+**No Docker:** the bot's Hotline client (`HeidrunCore.HotlineNetworkClient`) is
+built on Apple's Network framework and is Darwin-only, so it can't run in a
+Linux container. A Linux host would need the client ported to SwiftNIO first.

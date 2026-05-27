@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+heidrun-spirit runs as a macOS launchd daemon.
+
+WHY NOT DOCKER: the bot uses HeidrunCore's HotlineNetworkClient, which is
+built on Apple's Network framework (NWConnection) and is therefore
+Darwin-only (`#if canImport(Network)`). Docker containers are Linux, where
+that client compiles out entirely — there is no Linux/NIO Hotline client in
+HeidrunCore yet. So the bot is deployed as a native macOS process. (Running
+it on a Linux host would require porting the client transport to SwiftNIO
+first — see deploy/README.md.)
+
+Install (build first — see deploy/README.md):
+  sudo install -d /usr/local/bin
+  sudo install -m 0755 .build/release/heidrun-spirit /usr/local/bin/
+  # The brain ships as a SwiftPM resource bundle that Bundle.module finds
+  # NEXT TO the executable — copy it alongside the binary:
+  sudo cp -R .build/release/heidrun-spirit_SpiritKit.bundle /usr/local/bin/
+  sudo install -d /usr/local/var/heidrun-spirit /usr/local/var/log
+  sudo install -m 0644 org.tastybytes.heidrun-spirit.plist /Library/LaunchDaemons/
+
+Edit the plist's HEIDRUN_SPIRIT_HOST below, then load:
+  sudo launchctl bootstrap system /Library/LaunchDaemons/org.tastybytes.heidrun-spirit.plist
+
+Unload:
+  sudo launchctl bootout system/org.tastybytes.heidrun-spirit
+
+Logs: /usr/local/var/log/heidrun-spirit.{out,err}.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>org.tastybytes.heidrun-spirit</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/heidrun-spirit</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- REQUIRED: the Hotline server the bot logs into. EDIT THIS. -->
+        <key>HEIDRUN_SPIRIT_HOST</key>
+        <string>CHANGE_ME.example.com</string>
+
+        <!-- Cleartext port. (Self-signed-TLS trust for an unattended bot
+             is not yet supported; use the cleartext port for now.) -->
+        <key>HEIDRUN_SPIRIT_PORT</key>
+        <string>5500</string>
+
+        <key>HEIDRUN_SPIRIT_NICK</key>
+        <string>Heidrun's Spirit</string>
+
+        <key>HEIDRUN_SPIRIT_EMOJI</key>
+        <string>🤖</string>
+
+        <!-- Writable directory the bot seeds + saves its MegaHAL brain in. -->
+        <key>HEIDRUN_SPIRIT_BRAIN_PATH</key>
+        <string>/usr/local/var/heidrun-spirit/brain</string>
+
+        <key>HEIDRUN_SPIRIT_AUTOSAVE</key>
+        <string>25</string>
+
+        <key>HEIDRUN_SPIRIT_LOG_LEVEL</key>
+        <string>info</string>
+
+        <!-- Optional account login (omit for a guest connection): -->
+        <!-- <key>HEIDRUN_SPIRIT_LOGIN</key>    <string>spirit</string> -->
+        <!-- <key>HEIDRUN_SPIRIT_PASSWORD</key> <string>secret</string> -->
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/usr/local/var/heidrun-spirit</string>
+
+    <!--
+      RunAtLoad starts at boot. KeepAlive restarts on crash or non-zero
+      exit. The bot has its own reconnect loop, so it normally stays up;
+      KeepAlive is the backstop. SIGTERM trips its #SAVE-then-exit path.
+    -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/heidrun-spirit.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/heidrun-spirit.err.log</string>
+
+    <!-- Optional dedicated service account; remove for dev runs. -->
+    <!--
+    <key>UserName</key>
+    <string>_heidrun</string>
+    <key>GroupName</key>
+    <string>_heidrun</string>
+    -->
+</dict>
+</plist>
