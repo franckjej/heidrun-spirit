@@ -54,10 +54,14 @@ COPY Tests ./Tests
 # authed HTTPS endpoint. If RUN fails before cleanup, the layer is
 # discarded entirely — the token has no path into the final image.
 #
-# After build, install the binary AND its resource bundle: Bundle.module
-# locates the MegaHAL seed brain in heidrun-spirit_SpiritKit.bundle,
-# which SwiftPM places next to the executable, so the bundle must travel
-# with the binary.
+# After build, stage the binary AND its resource bundle into /out.
+# Bundle.module locates the MegaHAL seed brain in SpiritKit's resource
+# bundle, which SwiftPM places next to the executable — so it must travel
+# with the binary. The bundle's filename is NOT hardcoded: SwiftPM
+# sanitizes the package name differently across platforms (the hyphen in
+# "heidrun-spirit" survives on macOS but not always on Linux), so we glob
+# *.bundle, which preserves whatever name the accessor expects. Staging in
+# /out keeps the runtime COPY a single, name-agnostic directory copy.
 RUN --mount=type=secret,id=gh_token,required=true \
     --mount=type=cache,target=/root/.cache/org.swift.swiftpm \
     --mount=type=cache,target=/src/.build \
@@ -69,12 +73,13 @@ RUN --mount=type=secret,id=gh_token,required=true \
  && swift build \
       --configuration release \
       --product heidrun-spirit \
+ && mkdir -p /out \
  && install -m 0755 \
       .build/release/heidrun-spirit \
-      /usr/local/bin/heidrun-spirit \
+      /out/heidrun-spirit \
  && cp -R \
-      .build/release/heidrun-spirit_SpiritKit.bundle \
-      /usr/local/bin/ \
+      .build/release/*.bundle \
+      /out/ \
  && git config --global --remove-section "url.${AUTHED_BASE}"
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -90,8 +95,10 @@ FROM swift:6.2-jammy-slim AS runtime
 RUN useradd --system --home-dir /var/lib/heidrun-spirit --shell /usr/sbin/nologin spirit \
  && install -d -o spirit -g spirit /var/lib/heidrun-spirit
 
-COPY --from=build /usr/local/bin/heidrun-spirit /usr/local/bin/heidrun-spirit
-COPY --from=build /usr/local/bin/heidrun-spirit_SpiritKit.bundle /usr/local/bin/heidrun-spirit_SpiritKit.bundle
+# Copy the staged binary + its resource bundle(s) in one shot. Copying the
+# /out directory's contents preserves the .bundle directory name that
+# Bundle.module expects, without the Dockerfile having to name it.
+COPY --from=build /out/ /usr/local/bin/
 
 USER spirit
 WORKDIR /var/lib/heidrun-spirit
