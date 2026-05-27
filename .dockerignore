@@ -1,0 +1,27 @@
+# The Dockerfile only COPYs Package.swift, Package.resolved, Sources,
+# and Tests — everything else here keeps the build context small.
+#
+# Tests/ is intentionally NOT excluded: SPM parses the .testTarget
+# declaration in Package.swift even when we only build the executable
+# product, and bails with "overlapping sources" if Tests/ is absent.
+#
+# Unlike heidrun-server there is no git-info stage, so .git IS excluded.
+.git
+.gitignore
+.github
+
+.build
+.swiftpm
+*.xcodeproj
+*.xcworkspace
+DerivedData
+
+deploy
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+.DS_Store
+.vscode
+.idea
