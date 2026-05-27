@@ -1,5 +1,6 @@
 import Foundation
 import HeidrunCore
+import HeidrunNIOClient
 import SpiritKit
 
 func log(_ message: String) {
@@ -54,7 +55,7 @@ log("heidrun-spirit starting → \(config.settings.address):\(config.settings.po
 var backoff: UInt64 = 2
 while true {
     do {
-        let client = try await HotlineNetworkClient.connect(settings: config.settings)
+        let client = try await NIOHotlineClient.connect(settings: config.settings)
         try await client.login(
             name: config.settings.login,
             password: config.password,
