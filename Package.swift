@@ -9,7 +9,7 @@ let package = Package(
         // compare lexically — `from: "1.0.0-rcN"` will happily pick
         // a lower-numbered rc as "newer". See `feedback_spm_prerelease_pin`
         // in the heidrun-swift session memory for the rabbit hole.
-        .package(url: "git@github.com:franckjej/heidrun-protocol.git", exact: "1.0.0-rc12")
+        .package(url: "https://github.com/franckjej/heidrun-protocol.git", exact: "1.0.0-rc12")
     ],
     targets: [
         // 2001 MegaHAL C, reused verbatim. `-std=gnu89` for the K&R source;

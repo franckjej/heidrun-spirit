@@ -1,20 +1,13 @@
 # Convenience compose file for heidrun-spirit (the MegaHAL chatbot).
 #
 # Run from this repo's root:
-#   DOCKER_BUILDKIT=1 GH_TOKEN="$(gh auth token)" \
-#     docker compose up -d --build
+#   docker compose up -d --build
 #
 # Stop:
 #   docker compose down
 #
 # Logs:
 #   docker logs -f heidrun-spirit
-#
-# The build pulls the private `heidrun-protocol` SPM package over HTTPS,
-# authenticated with a GitHub token. `gh auth token` emits one if you've
-# run `gh auth login`. The top-level `secrets:` block forwards $GH_TOKEN
-# into the build as a BuildKit secret (compose v2+); see `Dockerfile` for
-# how it's consumed without landing in any image layer.
 #
 # heidrun-spirit is an OUTBOUND client: it connects to a Hotline server,
 # so there are no published ports. Point it at a server two ways:
@@ -41,8 +34,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      secrets:
-        - gh_token
     container_name: heidrun-spirit
     restart: unless-stopped
     # No healthcheck: a client has no port to probe. The bot's internal
@@ -111,11 +102,3 @@ services:
 
 volumes:
   spirit-brain:
-
-# Build-time secret. Compose reads $GH_TOKEN from the shell that invokes
-# `docker compose build/up` and forwards it to BuildKit as a secret file
-# at /run/secrets/gh_token, consumed only by the build RUN in the
-# Dockerfile. Not used at runtime.
-secrets:
-  gh_token:
-    environment: GH_TOKEN

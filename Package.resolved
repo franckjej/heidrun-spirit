@@ -1,13 +1,22 @@
 {
-  "originHash" : "b88361fd6294c7a38c505609a2ecbbbb4d9bb177d5f042b524b3c8bbce40b481",
+  "originHash" : "68c9cbdaf62738a6356a657170e01ea0c81eeef0d0b0d16780f660a4284706d4",
   "pins" : [
     {
       "identity" : "heidrun-protocol",
       "kind" : "remoteSourceControl",
-      "location" : "git@github.com:franckjej/heidrun-protocol.git",
+      "location" : "https://github.com/franckjej/heidrun-protocol.git",
       "state" : {
-        "revision" : "05d8bb49f6e854745064349c4f8583cb63ab1c75",
-        "version" : "1.0.0-rc8"
+        "revision" : "f30e1c107312f8f81de3971bd576250a74ff5330",
+        "version" : "1.0.0-rc12"
+      }
+    },
+    {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser.git",
+      "state" : {
+        "revision" : "ca37474853a4b5f59a22c74bfdd449b1f6bc4cc2",
+        "version" : "1.8.1"
       }
     },
     {

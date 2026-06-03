@@ -6,18 +6,14 @@ heidrun-spirit is an outbound Hotline client built on the cross-platform
 
 ## Docker (Linux)
 
-The repo ships a multi-stage `Dockerfile` and a `docker-compose.yml`. The build
-fetches the private `heidrun-protocol` SPM package, authenticated with a GitHub
-token passed as a BuildKit secret — `gh auth token` emits one once you've run
-`gh auth login`.
+The repo ships a multi-stage `Dockerfile` and a `docker-compose.yml`.
 
 ```bash
 cd heidrun-spirit
 
 # Set the server the bot connects to in docker-compose.yml
 # (HEIDRUN_SPIRIT_HOST), then:
-DOCKER_BUILDKIT=1 GH_TOKEN="$(gh auth token)" \
-  docker compose up -d --build
+docker compose up -d --build
 
 # Logs (connect/login/reconnect lines):
 docker logs -f heidrun-spirit

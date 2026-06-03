@@ -32,7 +32,7 @@ public actor SpiritBot {
         await send(reply)
 
         replyCount += 1
-        if replyCount % autosaveEvery == 0 { await engine.save() }
+        if replyCount.isMultiple(of: autosaveEvery) { await engine.save() }
     }
 
     /// Consume a client's event stream, replying to public chat. Returns on
